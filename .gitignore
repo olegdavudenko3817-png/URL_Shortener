@@ -1,0 +1,64 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# IntelliJ local settings
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/usage.statistics.xml
+.idea/dictionaries/
+.idea/httpRequests/
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+
+# Logs
+*.log
+logs/
+
+# Java
+*.class
+
+
+# Test / coverage reports
+coverage/
+jacoco/
+*.exec
+
+# JaCoCo generated HTML report
+build/reports/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Docker local overrides
+docker-compose.override.yml
+compose.override.yaml
