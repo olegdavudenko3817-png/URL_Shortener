@@ -50,4 +50,14 @@ public class GlobalExceptionHandler {
                 .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
     }
+
+    @ExceptionHandler(InvalidUrlException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidUrl(InvalidUrlException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", exception.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidExpirationException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidExpiration(InvalidExpirationException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", exception.getMessage()));
+    }
 }

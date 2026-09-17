@@ -11,9 +11,10 @@ import java.time.OffsetDateTime;
 @AllArgsConstructor
 public class ShortUrlResponse {
     private Long id;
-    private String shortCode;
+    private String shortUrl;
     private String originalUrl;
     private OffsetDateTime createdAt;
     private Long clickCount;
+    private String createdBy;
     private OffsetDateTime expiresAt;
 }

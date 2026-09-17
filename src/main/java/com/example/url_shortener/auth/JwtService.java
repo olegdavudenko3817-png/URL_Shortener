@@ -1,6 +1,7 @@
 package com.example.url_shortener.auth;
 
 import com.example.url_shortener.user.User;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,13 +38,15 @@ public class JwtService {
     }
 
     public boolean validateToken(String token, String username) {
-        var claims = parseToken(token);
-        String tokenUsername = claims.getSubject();
-        return username.equals(tokenUsername)
-                && !claims.getExpiration().before(new Date());
+        Claims claims = parseToken(token);
+        return isTokenValid(claims, username);
     }
 
-    private io.jsonwebtoken.Claims parseToken(String token) {
+    public boolean isTokenValid(Claims claims, String username) {
+        return username.equals(claims.getSubject()) && !claims.getExpiration().before(new Date());
+    }
+
+    public Claims parseToken(String token) {
         return Jwts.parser()
                 .verifyWith(secretKey)
                 .build()

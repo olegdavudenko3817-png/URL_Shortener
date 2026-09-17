@@ -18,6 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.example.url_shortener.shorturl.dto.ShortUrlStatisticsResponse;
 import com.example.url_shortener.common.exception.AuthenticationRequiredException;
+import com.example.url_shortener.common.exception.InvalidExpirationException;
+import com.example.url_shortener.common.exception.InvalidUrlException;
+import org.hibernate.exception.ConstraintViolationException;
 
 import java.net.URI;
 import java.time.Clock;
@@ -31,6 +34,8 @@ import java.util.concurrent.ThreadLocalRandom;
 public class ShortUrlService {
     private static final String CHARACTERS =
             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    private static final String SHORT_CODE_CONSTRAINT =
+            "short_urls_short_code_key";
 
     private static final int CODE_LENGTH = 8;
     private static final int MAX_GENERATION_ATTEMPTS = 10;
@@ -109,9 +114,8 @@ public class ShortUrlService {
         validateExpiration(request.getExpiresAt());
 
         shortUrl.update(request.getOriginalUrl(), request.getExpiresAt());
-        ShortUrl savedShortUrl = shortUrlRepository.save(shortUrl);
 
-        return shortUrlMapper.toResponse(savedShortUrl);
+        return shortUrlMapper.toResponse(shortUrl);
     }
 
     public void delete(Long id) {
@@ -155,23 +159,26 @@ public class ShortUrlService {
     }
 
     private void validateUrl(String originalUrl) {
+        if (originalUrl == null || originalUrl.isBlank()) {
+            throw new InvalidUrlException("Invalid URL");
+        }
+
         try {
             URI uri = URI.create(originalUrl);
-            if (uri.getScheme() == null || (!uri.getScheme().equalsIgnoreCase("http")
-                    && !uri.getScheme()
-                    .equalsIgnoreCase("https"))
-                    || uri.getHost() == null) {
-                throw new IllegalArgumentException("Invalid URL");
+            boolean validScheme = uri.getScheme() != null
+                    && (uri.getScheme().equalsIgnoreCase("http")
+                    || uri.getScheme().equalsIgnoreCase("https"));
+            if (!validScheme || uri.getHost() == null) {
+                throw new InvalidUrlException("Invalid URL");
             }
-
         } catch (IllegalArgumentException exception) {
-            throw new IllegalArgumentException("Invalid URL", exception);
+            throw new InvalidUrlException("Invalid URL");
         }
     }
 
     private void validateExpiration(OffsetDateTime expiresAt) {
         if (expiresAt == null || !expiresAt.isAfter(OffsetDateTime.now(clock))) {
-            throw new IllegalArgumentException("Expiration date must be in the future");
+            throw new InvalidExpirationException("Expiration date must be in the future");
         }
     }
 
@@ -187,9 +194,8 @@ public class ShortUrlService {
     private boolean isShortCodeConflict(DataIntegrityViolationException exception) {
         Throwable cause = exception;
         while (cause != null) {
-            String message = cause.getMessage();
-            if (message != null && message.contains("short_code")) {
-                return true;
+            if (cause instanceof ConstraintViolationException constraintViolationException) {
+                return SHORT_CODE_CONSTRAINT.equals(constraintViolationException.getConstraintName());
             }
             cause = cause.getCause();
         }

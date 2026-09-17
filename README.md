@@ -1,8 +1,8 @@
 # URL Shortener
 
-Проєкт **URL Shortener** — це REST API вебсервіс, розроблений для перетворення довгих URL-адрес у короткі унікальні посилання.
+Проєкт URL Shortener — це REST API вебсервіс для перетворення довгих URL-адрес у короткі унікальні посилання.
 
-Користувач вводить довгу URL-адресу, а сервіс створює для неї унікальне коротке посилання. При переході за коротким посиланням користувач автоматично перенаправляється на оригінальну URL-адресу, а кількість переходів оновлюється.
+Користувач передає оригінальну URL-адресу, після чого сервіс генерує короткий код і зберігає коротке та оригінальне посилання у PostgreSQL. Перехід за коротким посиланням виконує автоматичне перенаправлення на оригінальну URL-адресу та збільшує лічильник переходів.
 
 ## Технологічний стек
 
@@ -71,6 +71,7 @@ DB_NAME=url_shortener
 DB_PORT=5432
 
 APP_PORT=8080
+APP_BASE_URL=http://localhost:8080
 
 JWT_SECRET=your_jwt_secret
 JWT_EXPIRATION=86400000
@@ -450,6 +451,7 @@ URL_Shortener
     │   │       ├── AuthService
     │   │       ├── JwtAuthenticationFilter
     │   │       └── JwtService
+    |   |       └── RestAuthenticationEntryPoint
     │   │
     │   │       ├── common
     │   │       │   └── exception
@@ -484,8 +486,7 @@ URL_Shortener
     │           └── migration
     │               ├── V1__init.sql
     │               ├── V2__create_users.sql
-    │               ├── V3__fix_users_id_type.sql
-    │               └── V4__create_short_urls.sql
+    │               └── V3__create_short_urls.sql
     │
     └── test
         └── java

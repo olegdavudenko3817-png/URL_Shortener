@@ -6,6 +6,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import com.example.url_shortener.common.exception.InvalidUrlException;
+import com.example.url_shortener.common.exception.InvalidExpirationException;
 
 import java.util.List;
 import java.util.Map;
@@ -78,15 +80,30 @@ class GlobalExceptionHandlerTest {
 
         FieldError fieldError = new FieldError("request", "username", "username must not be blank");
 
-        when(exception.getBindingResult())
-                .thenReturn(bindingResult);
-
-        when(bindingResult.getFieldErrors())
-                .thenReturn(List.of(fieldError));
+        when(exception.getBindingResult()).thenReturn(bindingResult);
+        when(bindingResult.getFieldErrors()).thenReturn(List.of(fieldError));
 
         ResponseEntity<Map<String, String>> response = handler.handleValidation(exception);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("username must not be blank", response.getBody().get("username"));
+    }
+
+    @Test
+    void shouldHandleInvalidUrl() {
+        InvalidUrlException exception = new InvalidUrlException("Invalid URL");
+        ResponseEntity<Map<String, String>> response = handler.handleInvalidUrl(exception);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Invalid URL", response.getBody().get("error"));
+    }
+
+    @Test
+    void shouldHandleInvalidExpiration() {
+        InvalidExpirationException exception = new InvalidExpirationException("Expiration date must be in the future");
+        ResponseEntity<Map<String, String>> response = handler.handleInvalidExpiration(exception);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Expiration date must be in the future", response.getBody().get("error"));
     }
 }

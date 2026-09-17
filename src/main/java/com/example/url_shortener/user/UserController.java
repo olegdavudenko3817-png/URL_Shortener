@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @RestController
-@SecurityRequirement(name = "bearerAuth")
 @RequestMapping("/api/v1/users")
 public class UserController {
     private final UserService userService;
@@ -27,6 +26,7 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);
     }
 
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/me")
     public UserResponse me() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

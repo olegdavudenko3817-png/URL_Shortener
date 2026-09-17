@@ -19,6 +19,6 @@ public class RegistrationRequest {
     @NotBlank(message = "password cannot be empty")
     @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
             message = "password must contain lowercase, uppercase letter and digit")
-    @Size(min = 8, max = 255, message = "password cannot exceed 255 characters")
+    @Size(min = 8, max = 255, message = "password must contain between 8 and 255 characters")
     private String password;
 }
