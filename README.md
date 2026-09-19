@@ -87,6 +87,7 @@ JWT_EXPIRATION=86400000
 | `DB_NAME` | Назва бази даних |
 | `DB_PORT` | Порт PostgreSQL |
 | `APP_PORT` | Порт застосунку |
+| `APP_BASE_URL` | Базова URL-адреса застосунку для формування повних коротких посилань |
 | `JWT_SECRET` | Секретний ключ для підпису JWT |
 | `JWT_EXPIRATION` | Час дії JWT у мілісекундах |
 
@@ -330,7 +331,7 @@ GET /{shortCode}
 - дата завершення дії;
 - користувач, який створив посилання.
 
-Короткий код генерується випадковим чином і складається з латинських літер та цифр.
+Короткий код генерується за допомогою криптографічно стійкого генератора випадкових чисел (`SecureRandom`) і складається з латинських літер та цифр.
 
 Довжина короткого коду — 8 символів.
 
@@ -350,10 +351,7 @@ GET /api/v1/short-urls/{id}/statistics
 {
   "id": 1,
   "shortCode": "e99JDBRC",
-  "originalUrl": "https://www.google.com",
-  "createdAt": "2026-09-16T17:17:56.189482Z",
-  "clickCount": 2,
-  "expiresAt": "2027-01-31T23:59:59Z"
+  "clickCount": 2
 }
 ```
 
@@ -366,6 +364,7 @@ GET /api/v1/short-urls/{id}/statistics
 - BCrypt для хешування паролів;
 - JWT-аутентифікацію;
 - stateless security;
+- у поточній версії ролі користувачів не використовуються, тому JWT-аутентифікація створює `Authentication` без authorities;
 - перевірку власника короткого посилання;
 - перевірку строку дії посилання;
 - валідацію оригінальної URL-адреси;
@@ -484,9 +483,8 @@ URL_Shortener
     │       ├── application.properties
     │       └── db
     │           └── migration
-    │               ├── V1__init.sql
-    │               ├── V2__create_users.sql
-    │               └── V3__create_short_urls.sql
+    │               ├── V1__create_users.sql
+    │               └── V2__create_short_urls.sql
     │
     └── test
         └── java

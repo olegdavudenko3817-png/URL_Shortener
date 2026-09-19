@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.OffsetDateTime;
@@ -16,6 +17,7 @@ import java.time.OffsetDateTime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -49,12 +51,10 @@ class UserServiceTest {
         when(savedUser.getUsername()).thenReturn("testuser");
 
         OffsetDateTime createdAt = OffsetDateTime.parse("2026-09-15T12:00:00Z");
-
         when(savedUser.getCreatedAt()).thenReturn(createdAt);
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-
-        when(userRepository.save(userCaptor.capture())).thenReturn(savedUser);
+        when(userRepository.saveAndFlush(userCaptor.capture())).thenReturn(savedUser);
 
         UserResponse result = userService.register(request);
 
@@ -70,7 +70,7 @@ class UserServiceTest {
 
         verify(userRepository).existsByUsername("testuser");
         verify(passwordEncoder).encode("Test12345");
-        verify(userRepository).save(userToSave);
+        verify(userRepository).saveAndFlush(userToSave);
     }
 
     @Test
@@ -80,17 +80,12 @@ class UserServiceTest {
         request.setUsername("testuser");
         request.setPassword("Test12345");
 
-        when(userRepository.existsByUsername("testuser"))
-                .thenReturn(true);
-
-        assertThrows(
-                UsernameAlreadyExistsException.class,
-                () -> userService.register(request)
-        );
+        when(userRepository.existsByUsername("testuser")).thenReturn(true);
+        assertThrows(UsernameAlreadyExistsException.class, () -> userService.register(request));
 
         verify(userRepository).existsByUsername("testuser");
         verify(passwordEncoder, never()).encode("Test12345");
-        verify(userRepository, never()).save(org.mockito.ArgumentMatchers.any(User.class));
+        verify(userRepository, never()).saveAndFlush(any(User.class));
     }
 
     @Test
@@ -100,21 +95,17 @@ class UserServiceTest {
         request.setUsername("anotheruser");
         request.setPassword("Secure123");
 
-        when(userRepository.existsByUsername("anotheruser"))
-                .thenReturn(false);
+        when(userRepository.existsByUsername("anotheruser")).thenReturn(false);
 
-        when(passwordEncoder.encode("Secure123"))
-                .thenReturn("encoded-secure-password");
+        when(passwordEncoder.encode("Secure123")).thenReturn("encoded-secure-password");
 
-        when(userRepository.save(
-                org.mockito.ArgumentMatchers.any(User.class)
-        )).thenReturn(savedUser);
+        when(userRepository.saveAndFlush(any(User.class))).thenReturn(savedUser);
 
         userService.register(request);
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
 
-        verify(userRepository).save(userCaptor.capture());
+        verify(userRepository).saveAndFlush(userCaptor.capture());
 
         User saved = userCaptor.getValue();
 
@@ -131,14 +122,52 @@ class UserServiceTest {
         request.setUsername("existing");
         request.setPassword("Test12345");
 
-        when(userRepository.existsByUsername("existing"))
-                .thenReturn(true);
-
-        assertThrows(UsernameAlreadyExistsException.class,
-                () -> userService.register(request));
-
-        verify(userRepository, never()).save(org.mockito.ArgumentMatchers.any(User.class));
+        when(userRepository.existsByUsername("existing")).thenReturn(true);
+        assertThrows(UsernameAlreadyExistsException.class, () -> userService.register(request));
+        verify(userRepository, never()).saveAndFlush(any(User.class));
 
         verifyNoInteractions(passwordEncoder);
+    }
+
+    @Test
+    void shouldThrowUsernameAlreadyExistsWhenDatabaseReportsUsernameConflict() {
+        RegistrationRequest request = new RegistrationRequest();
+
+        request.setUsername("concurrent");
+        request.setPassword("Test12345");
+
+        when(userRepository.existsByUsername("concurrent")).thenReturn(false);
+        when(passwordEncoder.encode("Test12345")).thenReturn("encoded-password");
+
+        DataIntegrityViolationException exception = new DataIntegrityViolationException(
+                        "duplicate key value violates unique constraint \"uq_users_username\"");
+
+        when(userRepository.saveAndFlush(any(User.class))).thenThrow(exception);
+        assertThrows(UsernameAlreadyExistsException.class, () -> userService.register(request));
+
+        verify(userRepository).existsByUsername("concurrent");
+        verify(passwordEncoder).encode("Test12345");
+        verify(userRepository).saveAndFlush(any(User.class));
+    }
+
+    @Test
+    void shouldRethrowUnexpectedDataIntegrityViolation() {
+        RegistrationRequest request = new RegistrationRequest();
+
+        request.setUsername("testuser");
+        request.setPassword("Test12345");
+
+        when(userRepository.existsByUsername("testuser")).thenReturn(false);
+        when(passwordEncoder.encode("Test12345")).thenReturn("encoded-password");
+        DataIntegrityViolationException exception = new DataIntegrityViolationException(
+                "some other database constraint violation");
+
+        when(userRepository.saveAndFlush(any(User.class))).thenThrow(exception);
+
+        DataIntegrityViolationException thrown = assertThrows(DataIntegrityViolationException.class,
+                        () -> userService.register(request));
+
+        assertEquals(exception, thrown);
+        verify(userRepository).saveAndFlush(any(User.class));
     }
 }

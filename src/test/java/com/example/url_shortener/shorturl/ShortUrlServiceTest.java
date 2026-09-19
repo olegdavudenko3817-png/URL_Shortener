@@ -226,29 +226,19 @@ class ShortUrlServiceTest {
 
     @Test
     void shouldRedirectAndIncrementClickCount() {
-        when(shortUrlRepository.findByShortCode(
-                "5eme5rxR"))
-                .thenReturn(Optional.of(shortUrl));
+        when(shortUrlRepository.findByShortCode("5eme5rxR")).thenReturn(Optional.of(shortUrl));
+        when(shortUrl.getExpiresAt()).thenReturn(OffsetDateTime.parse("2026-10-01T12:00:00Z"));
 
-        when(shortUrl.getExpiresAt())
-                .thenReturn(OffsetDateTime.parse("2026-10-01T12:00:00Z"));
+        when(shortUrl.getId()).thenReturn(1L);
+        when(shortUrl.getOriginalUrl()).thenReturn("https://www.google.com");
 
-        when(shortUrl.getId())
-                .thenReturn(1L);
+        when(shortUrlRepository.incrementClickCountById(1L)).thenReturn(1);
 
-        when(shortUrl.getOriginalUrl())
-                .thenReturn("https://www.google.com");
-
-        when(shortUrlRepository.incrementClickCountById(1L))
-                .thenReturn(1);
-
-        ResponseEntity<Void> result =
-                shortUrlService.redirect("5eme5rxR");
+        ResponseEntity<Void> result = shortUrlService.redirect("5eme5rxR");
 
         assertEquals(302, result.getStatusCode().value());
         assertEquals(URI.create("https://www.google.com"),
-                result.getHeaders().getLocation()
-        );
+                result.getHeaders().getLocation());
 
         verify(shortUrlRepository).incrementClickCountById(1L);
     }
@@ -299,7 +289,7 @@ class ShortUrlServiceTest {
 
         ConstraintViolationException constraintViolationException = new ConstraintViolationException("duplicate key",
                         new SQLException("duplicate key"),
-                        "short_urls_short_code_key");
+                        "uq_short_urls_short_code");
 
         when(shortUrlSaveService.save(any(ShortUrl.class)))
                 .thenThrow(new DataIntegrityViolationException("could not save short URL", constraintViolationException))

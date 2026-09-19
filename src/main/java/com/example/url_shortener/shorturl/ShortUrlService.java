@@ -23,10 +23,11 @@ import com.example.url_shortener.common.exception.InvalidUrlException;
 import org.hibernate.exception.ConstraintViolationException;
 
 import java.net.URI;
+import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
+
 
 @RequiredArgsConstructor
 @Service
@@ -35,10 +36,12 @@ public class ShortUrlService {
     private static final String CHARACTERS =
             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     private static final String SHORT_CODE_CONSTRAINT =
-            "short_urls_short_code_key";
+            "uq_short_urls_short_code";
 
     private static final int CODE_LENGTH = 8;
     private static final int MAX_GENERATION_ATTEMPTS = 10;
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final ShortUrlRepository shortUrlRepository;
     private final ShortUrlMapper shortUrlMapper;
@@ -185,7 +188,7 @@ public class ShortUrlService {
     private String generateRandomCode() {
         StringBuilder code = new StringBuilder(CODE_LENGTH);
         for (int i = 0; i < CODE_LENGTH; i++) {
-            int index = ThreadLocalRandom.current().nextInt(CHARACTERS.length());
+            int index = SECURE_RANDOM.nextInt(CHARACTERS.length());
             code.append(CHARACTERS.charAt(index));
         }
         return code.toString();
